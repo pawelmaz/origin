@@ -36,6 +36,9 @@
     void odbierz_potwierdzenie();
     void sprawdz_odp();
 
+
+    printf("cscsdmdfk");
+
 main(int argv, char *args[]) {
 
     if(argv<2)
