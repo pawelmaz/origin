@@ -76,7 +76,7 @@ main (int argc, char **argv)
       char *ofile;
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru -a -b -f -c arg");
+      printf("Dodaj opcje według wzoru -a -b -f -o arg");
   while ((c = getopt(argc, argv, ":abf:o:")) != -1) {
           switch(c) {
           case 'a':
@@ -121,7 +121,7 @@ main (int argc, char **argv)
   ///////////////////////////////////////////////////////////////////////////////
 
   // Interface to send packet through.
-  strcpy (interface, "wlp2s0");//p8p1
+  strcpy (interface, ofile);//p8p1  wlp2s0
 
   // Submit request for a socket descriptor to look up interface.
   if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
