@@ -70,32 +70,27 @@ main (int argc, char **argv)
 
 
   /////////////////////////////////////////////////////
-  int c;
-      int bflg, aflg, errflg;
+   int c;
+      //int bflg;
+      //int aflg;
+      int errflg;
       char *ifile;
       char *ofile;
+      int *ilerazy;
+      int ileraz;
+      ilerazy=&ileraz;
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru -a -b -f -o arg");
-  while ((c = getopt(argc, argv, ":abf:o:")) != -1) {
+      printf("Dodaj opcje według wzoru  -b -f -o arg\n");
+  while ((c = getopt(argc, argv, ":b:f:o:")) != -1) {
           switch(c) {
-          case 'a':
-              if (bflg)
-                  errflg++;
-              else
-                  aflg++;
-              break;
           case 'b':
-              if (aflg)
-                  errflg++;
-              else {
-                  bflg++;
-                  //bproc();
-              }
-              break;
+        	  ileraz= atoi(optarg);
+        	  break;
           case 'f':
               ifile = optarg;
               break;
+
           case 'o':
               ofile = optarg;
               break;
@@ -113,11 +108,7 @@ main (int argc, char **argv)
       if (errflg) {
           fprintf(stderr, "usage: . . . ");
           exit(2);
-      }/*
-      for ( ; optind < argc; optind++) {
-          if (access(argv[optind], R_OK)) {
-      . . .  }
-*/
+      }
   ///////////////////////////////////////////////////////////////////////////////
 
   // Interface to send packet through.
@@ -142,17 +133,17 @@ main (int argc, char **argv)
   printf ("Index for interface %s is %i\n", interface, ifr.ifr_ifindex);
 
   // Source IPv4 address: you need to fill this out
-  strcpy (src_ip, "192.168.0.16");
+  strcpy (src_ip, "127.0.0.1");
 
   // Destination URL or IPv4 address: you need to fill this out
-  strcpy (target, "192.168.0.14");
+  strcpy (target, ifile);
 
  // Fill out hints for getaddrinfo().
   memset (&hints, 0, sizeof (struct addrinfo));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = hints.ai_flags | AI_CANONNAME;
-printf ("działa\n");
+
   // Resolve target using getaddrinfo().
   if ((status = getaddrinfo (target, NULL, &hints, &res)) != 0) {
     fprintf (stderr, "getaddrinfo() failed: %s\n", gai_strerror (status));
@@ -216,7 +207,7 @@ printf ("działa\n");
   // Transport layer protocol (8 bits): 1 for ICMP
   iphdr.ip_p = IPPROTO_ICMP;
 
-  printf("Dalej działa\n");
+
   // Source IPv4 address (32 bits)
   if ((status = inet_pton (AF_INET, src_ip, &(iphdr.ip_src))) != 1) {
     fprintf (stderr, "inet_pton() failed.\nError message: %s", strerror (status));
@@ -292,12 +283,18 @@ printf ("działa\n");
     perror ("setsockopt() failed to bind to interface ");
     exit (EXIT_FAILURE);
   }
-printf("działa7\n");
+
+
   // Send packet.
+int ile;
+
+printf ("Ile razy powtórzyć : %d \n",*ilerazy);
+for (ile = 0 ;ile < *ilerazy; ile++){
   if (sendto (sd, packet, IP4_HDRLEN + ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
     perror ("sendto() failed ");
     exit (EXIT_FAILURE);
   }
+}
 
   // Close socket descriptor.
   close (sd);
