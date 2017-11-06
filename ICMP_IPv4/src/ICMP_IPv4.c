@@ -36,7 +36,8 @@
 #include <errno.h>            // errno, perror()
 
 // Definiuje zmienne przechowujące długości nagłówków IP i ICMP.
-#define IP4_HDRLEN 20         // IPv4 header length
+//#define IP4_HDRLEN 20         // IPv4 header length
+#define IP4_HDRLEN 20
 #define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
 
 // Function prototypes
@@ -72,6 +73,9 @@ main (int argc, char **argv)
   /////////////////////////////////////////////////////
    int c;
    int wysylkaliczba=0;
+   int versjaip=0;
+   int spdlip=0;
+   int sprttl=0;
       //int bflg;
       //int aflg;
       int errflg;
@@ -81,15 +85,39 @@ main (int argc, char **argv)
       int *ilerazy;
       int ileraz;
       ilerazy=&ileraz;
+      int *wsipwers;
+      int bipwers;
+      wsipwers=&bipwers;
+      int *wsdlip;
+      int dlip;
+      wsdlip=&dlip;
+      int ttlint;
+      int *wskttlint;
+
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru  -b (ile razy wyslac?) -f(dest IP) -z(zrip) -o (interf) arg\n");
-  while ((c = getopt(argc, argv, ":b:f:z:o:")) != -1) {
+      printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -t (ttl) -f(dest IP) -z(zrip) -o (interf) arg\n");
+  while ((c = getopt(argc, argv, ":w:l:b:t:f:z:o:")) != -1) {
           switch(c) {
+          case 'w':
+              bipwers=atoi(optarg);
+              versjaip=1;
+              break;
+          case 'l':
+              dlip=atoi(optarg);
+              spdlip=1;
+
+              break;
           case 'b':
         	  ileraz= atoi(optarg);
         	  wysylkaliczba =1;
+
         	  break;
+          case 't':
+                  	  ttlint= atoi(optarg);
+                  	  sprttl =1;
+
+                  	  break;
           case 'f':
               ifile = optarg;
 
@@ -101,22 +129,25 @@ main (int argc, char **argv)
 
           case 'o':
               ofile = optarg;
+
               break;
-              case ':':       /* -f or -o without operand */
-                      fprintf(stderr,
-                              "Option -%c requires an operand\n", optopt);
-                      errflg++;
-                      break;
-          case '?':
-                      fprintf(stderr,
-                              "Unrecognized option: -%c\n", optopt);
-              errflg++;
-          }
-      }
-      if (errflg) {
-          fprintf(stderr, "usage: . . . ");
-          exit(2);
-      }
+
+//             case ':':       /* -f or -o without operand */
+//                      fprintf(stderr,
+//                              "Option -%c requires an operand\n", optopt);
+//                      errflg++;
+//                      break;
+//          case '?':
+//                      fprintf(stderr,
+//                              "Unrecognized option: -%c\n", optopt);
+//              errflg++;
+//
+//          }
+//      }
+//      if (errflg) {
+//          fprintf(stderr, "usage: . . . ");
+//          exit(2);
+          }}
   ///////////////////////////////////////////////////////////////////////////////
 
   // Interface to send packet through.
@@ -177,10 +208,21 @@ main (int argc, char **argv)
   // IPv4 header
 
   // IPv4 header length (4 bits): Number of 32-bit words in header = 5
-  iphdr.ip_hl = IP4_HDRLEN / sizeof (uint32_t);
+  if (spdlip==0){
+  iphdr.ip_hl = IP4_HDRLEN  / sizeof (uint32_t);
+  }
+  else{
+  iphdr.ip_hl = *wsdlip/ sizeof (uint32_t);
+
+  }
+  //iphdr.ip_hl = IP4_HDRLEN  / sizeof (uint32_t);
 
   // Internet Protocol version (4 bits): IPv4
-  iphdr.ip_v = 4;
+  if(versjaip==0)
+  {  iphdr.ip_v = 4;//4
+}else{
+  iphdr.ip_v = *wsipwers;//4
+  }
 
   // Type of service (8 bits)
   iphdr.ip_tos = 0;
@@ -211,7 +253,15 @@ main (int argc, char **argv)
                       +  ip_flags[3]);
 
   // Time-to-Live (8 bits): default to maximum value
-  iphdr.ip_ttl = 255;
+  if (sprttl==0){
+	  iphdr.ip_ttl=255;}
+  else if(*wskttlint>255 & *wskttlint<0)
+  {
+	  printf("Podaj odpowiedni ttl\n");
+  }else{
+
+  iphdr.ip_ttl = *wskttlint ;
+  }
 
   // Transport layer protocol (8 bits): 1 for ICMP
   iphdr.ip_p = IPPROTO_ICMP;
