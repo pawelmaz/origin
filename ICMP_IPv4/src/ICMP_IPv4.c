@@ -40,7 +40,7 @@
 #define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
 
 // Function prototypes
-//uint16_t checksum (uint16_t *, int);
+uint16_t checksum (uint16_t *, int);
 char *allocate_strmem (int);
 uint8_t *allocate_ustrmem (int);
 int *allocate_intmem (int);
@@ -71,25 +71,33 @@ main (int argc, char **argv)
 
   /////////////////////////////////////////////////////
    int c;
+   int wysylkaliczba=0;
       //int bflg;
       //int aflg;
       int errflg;
       char *ifile;
+      char *zipfile;
       char *ofile;
       int *ilerazy;
       int ileraz;
       ilerazy=&ileraz;
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru  -b -f -o arg\n");
-  while ((c = getopt(argc, argv, ":b:f:o:")) != -1) {
+      printf("Dodaj opcje według wzoru  -b (ile razy wyslac?) -f(dest IP) -z(zrip) -o (interf) arg\n");
+  while ((c = getopt(argc, argv, ":b:f:z:o:")) != -1) {
           switch(c) {
           case 'b':
         	  ileraz= atoi(optarg);
+        	  wysylkaliczba =1;
         	  break;
           case 'f':
               ifile = optarg;
+
               break;
+
+          case 'z':
+              zipfile = optarg;
+               break;
 
           case 'o':
               ofile = optarg;
@@ -133,7 +141,7 @@ main (int argc, char **argv)
   printf ("Index for interface %s is %i\n", interface, ifr.ifr_ifindex);
 
   // Source IPv4 address: you need to fill this out
-  strcpy (src_ip, "127.0.0.1");
+  strcpy (src_ip, zipfile);
 
   // Destination URL or IPv4 address: you need to fill this out
   strcpy (target, ifile);
@@ -159,11 +167,12 @@ main (int argc, char **argv)
   freeaddrinfo (res);
 
   // ICMP data
-  datalen = 4;
-  data[0] = 'T';
-  data[1] = 'e';
-  data[2] = 's';
-  data[3] = 't';
+  datalen = 5;
+  data[0] = 'P';
+  data[1] = 'a';
+  data[2] = 'w';
+  data[3] = 'e';
+  data[3] = 'l';
 
   // IPv4 header
 
@@ -222,7 +231,7 @@ main (int argc, char **argv)
 
   // IPv4 header checksum (16 bits): set to 0 when calculating checksum
   iphdr.ip_sum = 0;
-  	  	  	  	  	  	  	  	  	  //iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
+  iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
 
   // ICMP header / wypełnic tą strukturę parametrami wybranymi z klawiatury
 
@@ -253,7 +262,7 @@ main (int argc, char **argv)
   memcpy (packet + IP4_HDRLEN + ICMP_HDRLEN, data, datalen);
 
   // Calculate ICMP header checksum
-  	  	  	  	  	  	  //icmphdr.icmp_cksum = checksum ((uint16_t *) (packet + IP4_HDRLEN), ICMP_HDRLEN + datalen);
+  icmphdr.icmp_cksum = checksum ((uint16_t *) (packet + IP4_HDRLEN), ICMP_HDRLEN + datalen);
 
 
   memcpy ((packet + IP4_HDRLEN), &icmphdr, ICMP_HDRLEN);
@@ -288,14 +297,26 @@ main (int argc, char **argv)
   // Send packet.
 int ile;
 
-printf ("Ile razy powtórzyć : %d \n",*ilerazy);
-for (ile = 0 ;ile < *ilerazy; ile++){
+if (wysylkaliczba==0 ){
+	printf("Domyslnie wysle 1\n");
+	if (sendto (sd, packet, IP4_HDRLEN + ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+		    perror ("sendto() failed ");
+		    exit (EXIT_FAILURE);
+}}
+else if(wysylkaliczba==1 && *ilerazy==1){
+	if (sendto (sd, packet, IP4_HDRLEN + ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+	    perror ("sendto() failed ");
+	    exit (EXIT_FAILURE);
+}}else
+{
+printf ("Ile razy powtórzyć : %d \n",ileraz);
+for (ile = 1 ;ile < *ilerazy; ile++){
+
   if (sendto (sd, packet, IP4_HDRLEN + ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
     perror ("sendto() failed ");
     exit (EXIT_FAILURE);
-  }
-}
 
+}}}
   // Close socket descriptor.
   close (sd);
 
@@ -307,14 +328,14 @@ for (ile = 0 ;ile < *ilerazy; ile++){
   free (src_ip);
   free (dst_ip);
   free (ip_flags);
-  printf("Dalej działa\n");
+
   return (EXIT_SUCCESS);
 }
-/*
+
 // Computing the internet checksum (RFC 1071).
 // Note that the internet checksum does not preclude collisions.
-uint16_t
-checksum (uint16_t *addr, int len)
+
+uint16_t checksum (uint16_t *addr, int len)
 {
   int count = len;
   register uint32_t sum = 0;
@@ -343,7 +364,6 @@ checksum (uint16_t *addr, int len)
 
   return (answer);
 }
-*/
 
 
 // Allocate memory for an array of chars.
