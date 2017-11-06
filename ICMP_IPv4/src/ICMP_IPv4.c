@@ -78,10 +78,11 @@ main (int argc, char **argv)
    int sprttl=0;
       //int bflg;
       //int aflg;
-      int errflg;
+      //int errflg;
       char *ifile;
       char *zipfile;
       char *ofile;
+      char *protip;
       int *ilerazy;
       int ileraz;
       ilerazy=&ileraz;
@@ -93,11 +94,16 @@ main (int argc, char **argv)
       wsdlip=&dlip;
       int ttlint;
       int *wskttlint;
+      wskttlint=&ttlint;
+      int protokol=0;
+//      int zm1;
+//      int *zm2;
+//      zm2=&zm1;
 
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -t (ttl) -f(dest IP) -z(zrip) -o (interf) arg\n");
-  while ((c = getopt(argc, argv, ":w:l:b:t:f:z:o:")) != -1) {
+      printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -p ( IPPROTO_ICMP ) -t (ttl) -f(dest IP) -z(zrip) -o (interf) arg\n");
+  while ((c = getopt(argc, argv, ":w:l:b:p:t:f:z:o:")) != -1) {
           switch(c) {
           case 'w':
               bipwers=atoi(optarg);
@@ -113,6 +119,10 @@ main (int argc, char **argv)
         	  wysylkaliczba =1;
 
         	  break;
+          case 'p':
+                        protip = optarg;
+                        protokol=1;
+                        break;
           case 't':
                   	  ttlint= atoi(optarg);
                   	  sprttl =1;
@@ -253,19 +263,47 @@ main (int argc, char **argv)
                       +  ip_flags[3]);
 
   // Time-to-Live (8 bits): default to maximum value
+ // printf("wskttlint= %d \n",*wskttlint);
   if (sprttl==0){
-	  iphdr.ip_ttl=255;}
-  else if(*wskttlint>255 & *wskttlint<0)
-  {
-	  printf("Podaj odpowiedni ttl\n");
-  }else{
 
-  iphdr.ip_ttl = *wskttlint ;
+	  iphdr.ip_ttl=255;
+  }
+  else if( sprttl==1 && (*wskttlint>255 || *wskttlint<1))
+  {
+	  //if( *wskttlint>255 || *wskttlint<1)
+	  printf("Podaj odpowiedni ttl\n");
+
+  }else
+  {
+	  if( sprttl==1)
+  iphdr.ip_ttl = 3 ;
+	  //printf("dzialalalalalalalalaalla");
   }
 
   // Transport layer protocol (8 bits): 1 for ICMP
+  //printf(protip);
+
+  if (protokol==0)
+  {
+
   iphdr.ip_p = IPPROTO_ICMP;
 
+  }
+  else if(protokol==1 && strcmp(protip,"IPPROTO_ICMP") != 0){
+
+	  printf("zły protokol\n");
+  }
+  else
+  {
+	  if( protokol==1 && strcmp(protip,"IPPROTO_ICMP") ==0)
+		  {
+		  iphdr.ip_p =IPPROTO_ICMP;
+
+		  }
+ // printf("działą xd\n");
+
+  }
+  //printf("\n%s\n",protip);
 
   // Source IPv4 address (32 bits)
   if ((status = inet_pton (AF_INET, src_ip, &(iphdr.ip_src))) != 1) {
@@ -360,7 +398,7 @@ else if(wysylkaliczba==1 && *ilerazy==1){
 }}else
 {
 printf ("Ile razy powtórzyć : %d \n",ileraz);
-for (ile = 1 ;ile < *ilerazy; ile++){
+for (ile = 0 ;ile < *ilerazy; ile++){
 
   if (sendto (sd, packet, IP4_HDRLEN + ICMP_HDRLEN + datalen, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
     perror ("sendto() failed ");
