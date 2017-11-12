@@ -35,20 +35,23 @@
 
 #include <errno.h>            // errno, perror()
 
+#include "bibliotekahe.h"
+
 // Definiuje zmienne przechowujące długości nagłówków IP i ICMP.
 //#define IP4_HDRLEN 20         // IPv4 header length
 #define IP4_HDRLEN 20
 #define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
 
 // Function prototypes
-uint16_t checksum (uint16_t *, int);
-char *allocate_strmem (int);
-uint8_t *allocate_ustrmem (int);
-int *allocate_intmem (int);
+/////////////////////////////////uint16_t checksum (uint16_t *, int);
+/////////////////////////////////char *allocate_strmem (int);
+/////////////////////////////////uint8_t *allocate_ustrmem (int);
+/////////////////////////////////int *allocate_intmem (int);
 
 int
 main (int argc, char **argv)
 {
+
   int status, datalen, sd, *ip_flags;
   const int on = 1;
   char *interface, *target, *src_ip, *dst_ip;
@@ -86,9 +89,9 @@ main (int argc, char **argv)
       int *ilerazy;
       int ileraz;
       ilerazy=&ileraz;
-      int *wsipwers;
-      int bipwers;
-      wsipwers=&bipwers;
+      int wsipwers=-1;
+      char *bipwers;
+      bipwers=&wsipwers;
       int *wsdlip;
       int dlip;
       wsdlip=&dlip;
@@ -99,15 +102,15 @@ main (int argc, char **argv)
 //      int zm1;
 //      int *zm2;
 //      zm2=&zm1;
-
       extern char *optarg;
       extern int optind, optopt;
       printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -p ( IPPROTO_ICMP ) -t (ttl) -f(dest IP) -z(zrip) -o (interf) arg\n");
   while ((c = getopt(argc, argv, ":w:l:b:p:t:f:z:o:")) != -1) {
           switch(c) {
           case 'w':
-              bipwers=atoi(optarg);
-              versjaip=1;
+              //bipwers=optarg;
+        	  wsipwers=atoi(optarg);
+        	  versjaip=1;
               break;
           case 'l':
               dlip=atoi(optarg);
@@ -142,21 +145,6 @@ main (int argc, char **argv)
 
               break;
 
-//             case ':':       /* -f or -o without operand */
-//                      fprintf(stderr,
-//                              "Option -%c requires an operand\n", optopt);
-//                      errflg++;
-//                      break;
-//          case '?':
-//                      fprintf(stderr,
-//                              "Unrecognized option: -%c\n", optopt);
-//              errflg++;
-//
-//          }
-//      }
-//      if (errflg) {
-//          fprintf(stderr, "usage: . . . ");
-//          exit(2);
           }}
   ///////////////////////////////////////////////////////////////////////////////
 
@@ -182,10 +170,14 @@ main (int argc, char **argv)
   printf ("Index for interface %s is %i\n", interface, ifr.ifr_ifindex);
 
   // Source IPv4 address: you need to fill this out
-  strcpy (src_ip, zipfile);
+  //strcpy (src_ip, zipfile);
+
+  Set_Source_Addr(src_ip,zipfile);
 
   // Destination URL or IPv4 address: you need to fill this out
-  strcpy (target, ifile);
+  //strcpy (target, ifile);
+
+  Set_Dest_Addr(target,ifile);
 
  // Fill out hints for getaddrinfo().
   memset (&hints, 0, sizeof (struct addrinfo));
@@ -213,35 +205,41 @@ main (int argc, char **argv)
   data[1] = 'a';
   data[2] = 'w';
   data[3] = 'e';
-  data[3] = 'l';
+  data[4] = 'l';
 
   // IPv4 header
 
   // IPv4 header length (4 bits): Number of 32-bit words in header = 5
+
   if (spdlip==0){
-  iphdr.ip_hl = IP4_HDRLEN  / sizeof (uint32_t);
+   IPv4_length2(&iphdr);
   }
   else{
-  iphdr.ip_hl = *wsdlip/ sizeof (uint32_t);
-
+   IPv4_length(&iphdr,wsdlip);
   }
-  //iphdr.ip_hl = IP4_HDRLEN  / sizeof (uint32_t);
 
   // Internet Protocol version (4 bits): IPv4
+
   if(versjaip==0)
-  {  iphdr.ip_v = 4;//4
-}else{
-  iphdr.ip_v = *wsipwers;//4
+  {
+	  //printf("\nWchodzi\n");
+	  IPv4_Header_Set_Version2( &iphdr);
+
+   }else{
+	IPv4_Header_Set_Version( &iphdr,bipwers);
   }
 
+
   // Type of service (8 bits)
-  iphdr.ip_tos = 0;
+
+  Type_of_service( &iphdr,0);
 
   // Total length of datagram (16 bits): IP header + ICMP header + ICMP data
   iphdr.ip_len = htons (IP4_HDRLEN + ICMP_HDRLEN + datalen);
 
   // ID sequence number (16 bits): unused, since single datagram
-  iphdr.ip_id = htons (0);
+  ID_sequence_number(&iphdr, 0);
+
 
   // Flags, and Fragmentation offset (3, 13 bits): 0 since single datagram
 
@@ -263,30 +261,26 @@ main (int argc, char **argv)
                       +  ip_flags[3]);
 
   // Time-to-Live (8 bits): default to maximum value
- // printf("wskttlint= %d \n",*wskttlint);
-  if (sprttl==0){
 
-	  iphdr.ip_ttl=255;
+  if (sprttl==0)
+  {
+	  ttl2(&iphdr, 255);
   }
   else if( sprttl==1 && (*wskttlint>255 || *wskttlint<1))
   {
-	  //if( *wskttlint>255 || *wskttlint<1)
 	  printf("Podaj odpowiedni ttl\n");
 
   }else
   {
 	  if( sprttl==1)
-  iphdr.ip_ttl = 3 ;
-	  //printf("dzialalalalalalalalaalla");
+		  ttl2(&iphdr, ttlint);
   }
 
   // Transport layer protocol (8 bits): 1 for ICMP
-  //printf(protip);
 
   if (protokol==0)
   {
-
-  iphdr.ip_p = IPPROTO_ICMP;
+  transport_icmp_proto2(&iphdr,IPPROTO_ICMP);
 
   }
   else if(protokol==1 && strcmp(protip,"IPPROTO_ICMP") != 0){
@@ -297,16 +291,12 @@ main (int argc, char **argv)
   {
 	  if( protokol==1 && strcmp(protip,"IPPROTO_ICMP") ==0)
 		  {
-		  iphdr.ip_p =IPPROTO_ICMP;
-
+		  transport_icmp_proto2(&iphdr,IPPROTO_ICMP);
 		  }
- // printf("działą xd\n");
-
   }
-  //printf("\n%s\n",protip);
 
   // Source IPv4 address (32 bits)
-  if ((status = inet_pton (AF_INET, src_ip, &(iphdr.ip_src))) != 1) {
+  if ((status = inet_pton (AF_INET,src_ip, &(iphdr.ip_src))) != 1) {
     fprintf (stderr, "inet_pton() failed.\nError message: %s", strerror (status));
     exit (EXIT_FAILURE);
   }
@@ -318,11 +308,15 @@ main (int argc, char **argv)
   }
 
   // IPv4 header checksum (16 bits): set to 0 when calculating checksum
-  iphdr.ip_sum = 0;
-  iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
+
+    checksum_funkcja(&iphdr,IP4_HDRLEN );
+    iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
+
 
   // ICMP header / wypełnic tą strukturę parametrami wybranymi z klawiatury
 
+
+    //strcmp(protip,"IPPROTO_ICMP") != 0
   // Message Type (8 bits): echo request
   icmphdr.icmp_type = ICMP_ECHO;
 
@@ -423,97 +417,101 @@ for (ile = 0 ;ile < *ilerazy; ile++){
 // Computing the internet checksum (RFC 1071).
 // Note that the internet checksum does not preclude collisions.
 
-uint16_t checksum (uint16_t *addr, int len)
-{
-  int count = len;
-  register uint32_t sum = 0;
-  uint16_t answer = 0;
 
-  // Sum up 2-byte values until none or only one byte left.
-  while (count > 1) {
-    sum += *(addr++);
-    count -= 2;
-  }
+///// 1 przeniesiona ///////
 
-  // Add left-over byte, if any.
-  if (count > 0) {
-    sum += *(uint8_t *) addr;
-  }
+//uint16_t checksum (uint16_t *addr, int len)
+//{
+//  int count = len;
+//  register uint32_t sum = 0;
+//  uint16_t answer = 0;
+//
+//  // Sum up 2-byte values until none or only one byte left.
+//  while (count > 1) {
+//    sum += *(addr++);
+//    count -= 2;
+//  }
+//
+//  // Add left-over byte, if any.
+//  if (count > 0) {
+//    sum += *(uint8_t *) addr;
+//  }
+//
+//  // Fold 32-bit sum into 16 bits; we lose information by doing this,
+//  // increasing the chances of a collision.
+//  // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
+//  while (sum >> 16) {
+//    sum = (sum & 0xffff) + (sum >> 16);
+//  }
+//
+//  // Checksum is one's compliment of sum.
+//  answer = ~sum;
+//
+//  return (answer);
+//}
 
-  // Fold 32-bit sum into 16 bits; we lose information by doing this,
-  // increasing the chances of a collision.
-  // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
-  while (sum >> 16) {
-    sum = (sum & 0xffff) + (sum >> 16);
-  }
-
-  // Checksum is one's compliment of sum.
-  answer = ~sum;
-
-  return (answer);
-}
-
+/////// 2 przeniesiona /////////
 
 // Allocate memory for an array of chars.
-char *
-allocate_strmem (int len)
-{
-  void *tmp;
-
-  if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_strmem().\n", len);
-    exit (EXIT_FAILURE);
-  }
-
-  tmp = (char *) malloc (len * sizeof (char));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (char));
-    return (tmp);
-  } else {
-    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_strmem().\n");
-    exit (EXIT_FAILURE);
-  }
-}
+//char *
+//allocate_strmem (int len)
+//{
+//  void *tmp;
+//
+//  if (len <= 0) {
+//    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_strmem().\n", len);
+//    exit (EXIT_FAILURE);
+//  }
+//
+//  tmp = (char *) malloc (len * sizeof (char));
+//  if (tmp != NULL) {
+//    memset (tmp, 0, len * sizeof (char));
+//    return (tmp);
+//  } else {
+//    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_strmem().\n");
+//    exit (EXIT_FAILURE);
+//  }
+//}
 
 // Allocate memory for an array of unsigned chars.
-uint8_t *
-allocate_ustrmem (int len)
-{
-  void *tmp;
-
-  if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
-    exit (EXIT_FAILURE);
-  }
-
-  tmp = (uint8_t *) malloc (len * sizeof (uint8_t));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (uint8_t));
-    return (tmp);
-  } else {
-    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
-    exit (EXIT_FAILURE);
-  }
-}
-
-// Allocate memory for an array of ints.
-int *
-allocate_intmem (int len)
-{
-  void *tmp;
-
-  if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_intmem().\n", len);
-    exit (EXIT_FAILURE);
-  }
-
-  tmp = (int *) malloc (len * sizeof (int));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (int));
-    return (tmp);
-  } else {
-    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_intmem().\n");
-    exit (EXIT_FAILURE);
-  }
-}
+//uint8_t *
+//allocate_ustrmem (int len)
+//{
+//  void *tmp;
+//
+//  if (len <= 0) {
+//    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
+//    exit (EXIT_FAILURE);
+//  }
+//
+//  tmp = (uint8_t *) malloc (len * sizeof (uint8_t));
+//  if (tmp != NULL) {
+//    memset (tmp, 0, len * sizeof (uint8_t));
+//    return (tmp);
+//  } else {
+//    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
+//    exit (EXIT_FAILURE);
+//  }
+//}
+//
+//// Allocate memory for an array of ints.
+//int *
+//allocate_intmem (int len)
+//{
+//  void *tmp;
+//
+//  if (len <= 0) {
+//    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_intmem().\n", len);
+//    exit (EXIT_FAILURE);
+//  }
+//
+//  tmp = (int *) malloc (len * sizeof (int));
+//  if (tmp != NULL) {
+//    memset (tmp, 0, len * sizeof (int));
+//    return (tmp);
+//  } else {
+//    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_intmem().\n");
+//    exit (EXIT_FAILURE);
+//  }
+//}
 

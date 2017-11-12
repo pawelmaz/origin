@@ -4,13 +4,16 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../src/ICMP_IPv4.c 
+../src/ICMP_IPv4.c \
+../src/bliblitekaso.c 
 
 OBJS += \
-./src/ICMP_IPv4.o 
+./src/ICMP_IPv4.o \
+./src/bliblitekaso.o 
 
 C_DEPS += \
-./src/ICMP_IPv4.d 
+./src/ICMP_IPv4.d \
+./src/bliblitekaso.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
