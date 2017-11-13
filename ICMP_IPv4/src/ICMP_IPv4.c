@@ -86,6 +86,7 @@ main (int argc, char **argv)
       char *zipfile;
       char *ofile;
       char *protip;
+      char *icmptyp;
       int *ilerazy;
       int ileraz;
       ilerazy=&ileraz;
@@ -104,8 +105,8 @@ main (int argc, char **argv)
 //      zm2=&zm1;
       extern char *optarg;
       extern int optind, optopt;
-      printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -p ( IPPROTO_ICMP ) -t (ttl) -f(dest IP) -z(zrip) -o (interf) arg\n");
-  while ((c = getopt(argc, argv, ":w:l:b:p:t:f:z:o:")) != -1) {
+      printf("Dodaj opcje według wzoru  -w (ip vers 4) -l (dl 20) -b (ile razy wyslac?) -p ( IPPROTO_ICMP ) -t (ttl) -i (icmp_type) -f(dest IP) -z(zrip) -o (interf) arg\n");
+  while ((c = getopt(argc, argv, ":w:l:b:p:t:i:f:z:o:")) != -1) {
           switch(c) {
           case 'w':
               //bipwers=optarg;
@@ -127,10 +128,15 @@ main (int argc, char **argv)
                         protokol=1;
                         break;
           case 't':
-                  	  ttlint= atoi(optarg);
-                  	  sprttl =1;
+              ttlint= atoi(optarg);
+              sprttl =1;
 
                   	  break;
+          case 'i':
+              icmptyp= optarg;
+              //icmptypsprttl =1;
+              break;
+
           case 'f':
               ifile = optarg;
 
@@ -147,7 +153,7 @@ main (int argc, char **argv)
 
           }}
   ///////////////////////////////////////////////////////////////////////////////
-
+//
   // Interface to send packet through.
   strcpy (interface, ofile);//p8p1  wlp2s0
 
@@ -210,13 +216,15 @@ main (int argc, char **argv)
   // IPv4 header
 
   // IPv4 header length (4 bits): Number of 32-bit words in header = 5
-
+ // printf("xdxdxdxdxdxdxdx\n");
   if (spdlip==0){
    IPv4_length2(&iphdr);
   }
   else{
-   IPv4_length(&iphdr,wsdlip);
-  }
+   //IPv4_length(&iphdr,wsdlip);
+  iphdr.ip_hl = 20 / sizeof (uint32_t);
+   }
+
 
   // Internet Protocol version (4 bits): IPv4
 
@@ -277,11 +285,13 @@ main (int argc, char **argv)
   }
 
   // Transport layer protocol (8 bits): 1 for ICMP
+//
 
+  //printf("xdxdxdxdxdxdxdx\n");
   if (protokol==0)
   {
   transport_icmp_proto2(&iphdr,IPPROTO_ICMP);
-
+	  //iphdr.ip_p = IPPROTO_ICMP;
   }
   else if(protokol==1 && strcmp(protip,"IPPROTO_ICMP") != 0){
 
@@ -294,7 +304,7 @@ main (int argc, char **argv)
 		  transport_icmp_proto2(&iphdr,IPPROTO_ICMP);
 		  }
   }
-
+ // printf("xdxdxdxdxdxdxdx\n");
   // Source IPv4 address (32 bits)
   if ((status = inet_pton (AF_INET,src_ip, &(iphdr.ip_src))) != 1) {
     fprintf (stderr, "inet_pton() failed.\nError message: %s", strerror (status));
@@ -308,7 +318,7 @@ main (int argc, char **argv)
   }
 
   // IPv4 header checksum (16 bits): set to 0 when calculating checksum
-
+  //printf("xdxdxdxdxdxdxdx\n");
     checksum_funkcja(&iphdr,IP4_HDRLEN );
     iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
 
@@ -318,12 +328,23 @@ main (int argc, char **argv)
 
     //strcmp(protip,"IPPROTO_ICMP") != 0
   // Message Type (8 bits): echo request
-  icmphdr.icmp_type = ICMP_ECHO;
+   if(icmptyp==1)
+   {
+    type_icmp(&icmphdr,ICMP_ECHO);
+
+   }
+
+  // icmphdr.icmp_type = htons(ICMP_ECHO);
 
   // Message Code (8 bits): echo request
-  icmphdr.icmp_code = 0;
+   if(icmptyp==1)
+      {
+       type_icmp2(&icmphdr,0);
+      }
+
 
   // Identifier (16 bits): usually pid of sending process - pick a number
+
   icmphdr.icmp_id = htons (1000);
 
   // Sequence Number (16 bits): starts at 0
